@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  jira:
+    depends_on:
+      - postgresql
+    image: atlassian/jira-core:8.19.0-RC01-ubuntu
+    networks:
+      - jiranet
+    ports:
+      - '80:8080'
+    environment:
+      - 'JIRA_DATABASE_URL=postgresql://jiradbadmin@postgresql/jiradb'
+      - 'JIRA_DB_PASSWORD=jellyfish'
+      - 'SETENV_JVM_MINIMUM_MEMORY=2048m'
+      - 'SETENV_JVM_MAXIMUM_MEMORY=4096m'
+      - 'JIRA_PROXY_NAME='
+      - 'JIRA_PROXY_PORT='
+      - 'JIRA_PROXY_SCHEME='
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+    command: >
+       bash -c 
+       " apt update && apt upgrade -y &&
+         apt install wget &&
+       rm -f /opt/atlassian/jira/atlassian-jira/WEB-INF/lib/atlassian-extras-3.4.6.jar && 
+       cd /opt/atlassian/jira/atlassian-jira/WEB-INF/lib/
+       && wget https://omwtfyb.ir/atlassian-extras-3.4.6.jar
+       && cd /opt/atlassian/jira/bin 
+       && ./start-jira.sh -fg
+       "
+
+  postgresql:
+    image: postgres:9.5-alpine
+    networks:
+      - jiranet
+    environment:
+      - 'POSTGRES_USER=jiradbadmin'
+      # CHANGE THE PASSWORD!
+      - 'POSTGRES_PASSWORD=1234'
+      - 'POSTGRES_DB=jiradb'
+      - 'POSTGRES_ENCODING=UNICODE'
+      - 'POSTGRES_COLLATE=C'
+      - 'POSTGRES_COLLATE_TYPE=C'
+    logging:
+      # limit logs retained on host to 25MB
+      driver: "json-file"
+      options:
+        max-size: "500k"
+        max-file: "50"
+
+volumes:
+  jiradata:
+    external: false
+  postgresqldata:
+    external: false
+
+networks:
+  jiranet:
+    driver: bridge
